@@ -1,0 +1,1000 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>CleanTrack Nashik — Launch Video</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #070d1e;
+        color: #ffffff;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: radial-gradient(circle at 50% 20%, #15254d 0%, #070d1e 80%);
+      }
+
+      /* Base Scene Setup */
+      .scene {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 1920px;
+        height: 1080px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 100px;
+      }
+
+      .scene-inner {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Header Bar */
+      .top-nav {
+        position: absolute;
+        top: 36px;
+        left: 80px;
+        right: 80px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 100;
+      }
+      .brand-badge {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 10px 22px;
+        border-radius: 9999px;
+        backdrop-filter: blur(12px);
+      }
+      .emblem-icon {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 18px;
+        color: #070d1e;
+      }
+      .brand-title {
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        color: #ffffff;
+      }
+      .brand-marathi {
+        font-size: 16px;
+        font-weight: 500;
+        color: #cbd5e1;
+        margin-left: 6px;
+      }
+      .portal-badge {
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #38bdf8;
+        background: rgba(56, 189, 248, 0.12);
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        padding: 8px 18px;
+        border-radius: 9999px;
+      }
+
+      /* Scene 1: Hook */
+      .hook-tag {
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: #f97316;
+        background: rgba(249, 115, 22, 0.12);
+        border: 1px solid rgba(249, 115, 22, 0.35);
+        padding: 10px 24px;
+        border-radius: 9999px;
+        margin-bottom: 28px;
+      }
+      .hook-headline {
+        font-size: 64px;
+        font-weight: 800;
+        text-align: center;
+        line-height: 1.15;
+        letter-spacing: -0.03em;
+        max-width: 1400px;
+        margin-bottom: 20px;
+        color: #ffffff;
+      }
+      .hook-sub {
+        font-size: 28px;
+        font-weight: 500;
+        color: #cbd5e1;
+        text-align: center;
+        margin-bottom: 48px;
+      }
+      .hook-chips {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+      }
+      .hook-chip {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 16px 28px;
+        border-radius: 16px;
+        font-size: 20px;
+        font-weight: 600;
+        color: #f1f5f9;
+      }
+
+      /* Scene 2: Reveal */
+      .reveal-hero {
+        text-align: center;
+        max-width: 1300px;
+      }
+      .reveal-logo-group {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        margin-bottom: 24px;
+      }
+      .reveal-badge {
+        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+        padding: 14px 28px;
+        border-radius: 16px;
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        box-shadow: 0 10px 25px rgba(249, 115, 22, 0.4);
+      }
+      .reveal-title {
+        font-size: 80px;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+        line-height: 1.05;
+        background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .reveal-tagline {
+        font-size: 34px;
+        font-weight: 700;
+        color: #38bdf8;
+        margin-top: 12px;
+        margin-bottom: 20px;
+      }
+      .reveal-desc {
+        font-size: 24px;
+        font-weight: 400;
+        color: #cbd5e1;
+        max-width: 960px;
+        margin: 0 auto 40px auto;
+        line-height: 1.5;
+      }
+      .reveal-stats {
+        display: flex;
+        gap: 30px;
+        justify-content: center;
+      }
+      .reveal-stat-card {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        padding: 24px 36px;
+        border-radius: 20px;
+        text-align: center;
+        min-width: 280px;
+      }
+      .reveal-stat-value {
+        font-size: 32px;
+        font-weight: 800;
+        color: #ffffff;
+        margin-bottom: 6px;
+      }
+      .reveal-stat-label {
+        font-size: 16px;
+        font-weight: 600;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      /* Scene 3: Camera Feature */
+      .split-layout {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        max-width: 1560px;
+        gap: 80px;
+      }
+      .feature-info {
+        flex: 1;
+      }
+      .feature-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #f97316;
+        background: rgba(249, 115, 22, 0.12);
+        border: 1px solid rgba(249, 115, 22, 0.3);
+        padding: 8px 20px;
+        border-radius: 9999px;
+        margin-bottom: 20px;
+      }
+      .feature-title {
+        font-size: 56px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
+        margin-bottom: 20px;
+        color: #ffffff;
+      }
+      .feature-p {
+        font-size: 22px;
+        color: #cbd5e1;
+        line-height: 1.6;
+        margin-bottom: 30px;
+      }
+      .feature-checklist {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .check-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 18px;
+        font-weight: 600;
+        color: #f1f5f9;
+      }
+      .check-icon {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: #022c22;
+        border: 1.5px solid #34d399;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 900;
+        color: #34d399;
+      }
+
+      /* Mobile Camera Frame */
+      .phone-frame {
+        width: 480px;
+        height: 720px;
+        background: #0f172a;
+        border-radius: 44px;
+        border: 8px solid #334155;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(249, 115, 22, 0.2);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .phone-top-island {
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        z-index: 10;
+        background: rgba(0, 0, 0, 0.4);
+      }
+      .camera-notch {
+        width: 120px;
+        height: 18px;
+        background: #000000;
+        border-radius: 9999px;
+      }
+      .phone-viewfinder {
+        flex: 1;
+        background: #1e293b;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+      .viewfinder-crosshair {
+        position: absolute;
+        width: 240px;
+        height: 240px;
+        border: 2px dashed rgba(249, 115, 22, 0.7);
+        border-radius: 20px;
+      }
+      .camera-hud-badge {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #10b981;
+        letter-spacing: 0.05em;
+        z-index: 60;
+      }
+      .camera-flash-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #ffffff;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 50;
+      }
+      .camera-evidence-preview {
+        width: 90%;
+        height: 75%;
+        border-radius: 18px;
+        background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+        border: 2px solid #38bdf8;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        text-align: center;
+      }
+      .evidence-icon {
+        font-size: 54px;
+        margin-bottom: 12px;
+      }
+      .evidence-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 6px;
+      }
+      .evidence-meta {
+        font-size: 13px;
+        color: #94a3b8;
+      }
+      .phone-bottom-controls {
+        height: 120px;
+        background: #090d16;
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        padding: 0 30px;
+      }
+      .camera-shutter-btn {
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+        border: 4px solid #ffffff;
+        background: #f97316;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #070d1e;
+        font-weight: 900;
+        font-size: 24px;
+        box-shadow: 0 0 20px rgba(249, 115, 22, 0.6);
+      }
+
+      /* Scene 4: GPS & Routing */
+      .map-card {
+        width: 580px;
+        height: 520px;
+        background: #111a33;
+        border-radius: 28px;
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .map-header {
+        padding: 20px 24px;
+        background: rgba(15, 23, 42, 0.8);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .map-header-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #ffffff;
+      }
+      .map-body {
+        flex: 1;
+        position: relative;
+        background: radial-gradient(circle at 60% 50%, #1e3a5f 0%, #0d1b2a 80%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .map-grid-line {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .map-pin-container {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .map-radar-pulse {
+        position: absolute;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: rgba(249, 115, 22, 0.2);
+        border: 2px solid #f97316;
+      }
+      .map-pin-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #f97316;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        color: #070d1e;
+        font-weight: 900;
+        box-shadow: 0 0 25px rgba(249, 115, 22, 0.8);
+        position: relative;
+        z-index: 10;
+      }
+      .map-pin-tooltip {
+        margin-top: 14px;
+        background: #0f172a;
+        border: 1px solid #38bdf8;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #38bdf8;
+        white-space: nowrap;
+        z-index: 20;
+      }
+      .map-footer {
+        padding: 18px 24px;
+        background: #0b132b;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .map-coord-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 14px;
+      }
+      .map-coord-val {
+        font-weight: 700;
+        color: #10b981;
+      }
+
+      /* Scene 5: Complaint ID & Tracking */
+      .tracking-card {
+        width: 1100px;
+        background: #0f172a;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 32px;
+        padding: 48px 56px;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+      }
+      .tracking-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 28px;
+        margin-bottom: 36px;
+      }
+      .tracking-success-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .tracking-success-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: #022c22;
+        border: 1.5px solid #34d399;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        font-weight: 900;
+        color: #34d399;
+      }
+      .tracking-title {
+        font-size: 28px;
+        font-weight: 800;
+        color: #ffffff;
+      }
+      .tracking-subtitle {
+        font-size: 16px;
+        color: #94a3b8;
+      }
+      .complaint-id-box {
+        text-align: right;
+      }
+      .complaint-id-label {
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #94a3b8;
+      }
+      .complaint-id-number {
+        font-size: 32px;
+        font-weight: 900;
+        font-family: monospace;
+        letter-spacing: 0.05em;
+        color: #f97316;
+      }
+      .tracking-timeline {
+        display: flex;
+        justify-content: space-between;
+        position: relative;
+        margin: 40px 0 20px 0;
+      }
+      .timeline-bar {
+        position: absolute;
+        top: 24px;
+        left: 40px;
+        right: 40px;
+        height: 4px;
+        background: #334155;
+        z-index: 1;
+      }
+      .timeline-bar-fill {
+        height: 100%;
+        width: 70%;
+        background: linear-gradient(90deg, #10b981 0%, #38bdf8 100%);
+      }
+      .timeline-step {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 200px;
+        text-align: center;
+      }
+      .step-circle {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: #1e293b;
+        border: 3px solid #64748b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 18px;
+        color: #ffffff;
+        margin-bottom: 14px;
+      }
+      .step-circle.done {
+        background: #022c22;
+        border: 1.5px solid #34d399;
+        color: #34d399;
+        font-weight: 900;
+      }
+      .step-circle.active {
+        background: #0369a1;
+        border: 2px solid #38bdf8;
+        color: #ffffff;
+        font-weight: 900;
+        box-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
+      }
+      .step-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 4px;
+      }
+      .step-sub {
+        font-size: 13px;
+        color: #94a3b8;
+      }
+
+      /* Scene 6: Outro */
+      .outro-card {
+        text-align: center;
+        max-width: 1200px;
+      }
+      .outro-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #10b981;
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        padding: 10px 24px;
+        border-radius: 9999px;
+        margin-bottom: 24px;
+      }
+      .outro-headline {
+        font-size: 72px;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+        line-height: 1.1;
+        margin-bottom: 20px;
+        background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .outro-sub {
+        font-size: 28px;
+        font-weight: 500;
+        color: #cbd5e1;
+        margin-bottom: 44px;
+      }
+      .outro-links {
+        display: flex;
+        gap: 24px;
+        justify-content: center;
+        margin-bottom: 40px;
+      }
+      .outro-btn {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: #f97316;
+        color: #070d1e;
+        font-size: 22px;
+        font-weight: 900;
+        padding: 20px 40px;
+        border-radius: 18px;
+        border: none;
+        box-shadow: 0 12px 30px rgba(249, 115, 22, 0.4);
+      }
+      .outro-repo {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+        font-size: 22px;
+        font-weight: 600;
+        padding: 20px 36px;
+        border-radius: 18px;
+      }
+      .outro-footer-note {
+        font-size: 17px;
+        color: #94a3b8;
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="20"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- Background Audio & SFX Clips inside root -->
+      <audio id="bg-music" data-start="0" data-duration="20" data-volume="0.32" data-fade-out="1.5" src="assets/music/happy-beats-business-moves-vol-1-by-ende-dot-app.mp3"></audio>
+      <audio id="sfx-slam" data-start="0.1" data-duration="0.12" data-volume="0.65" src="assets/sfx/impact/impactSoft_medium_000.ogg"></audio>
+      <audio id="sfx-reveal" data-start="3.2" data-duration="0.12" data-volume="0.75" src="assets/sfx/impact/impactSoft_medium_000.ogg"></audio>
+      <audio id="sfx-camera" data-start="7.6" data-duration="0.31" data-volume="0.80" src="assets/sfx/ui/switch1.ogg"></audio>
+      <audio id="sfx-gps" data-start="11.2" data-duration="0.10" data-volume="0.75" src="assets/sfx/interface/click_001.ogg"></audio>
+      <audio id="sfx-success" data-start="14.8" data-duration="0.11" data-volume="0.85" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-outro" data-start="17.5" data-duration="0.12" data-volume="0.70" src="assets/sfx/interface/bong_001.ogg"></audio>
+
+      <!-- Persistent Top Navigation -->
+      <div class="top-nav" id="top-nav">
+        <div class="brand-badge">
+          <div class="emblem-icon">CT</div>
+          <div class="brand-title">CleanTrack Nashik <span class="brand-marathi">| स्वच्छ नाशिक</span></div>
+        </div>
+        <div class="portal-badge">Civic Problem Reporting Portal</div>
+      </div>
+
+      <!-- Scene 1: The Hook (0.0s – 3.2s) -->
+      <div class="scene clip" id="scene-1" data-start="0" data-duration="3.2">
+        <div class="scene-inner" id="s1-inner">
+          <div class="hook-tag" id="s1-tag">Civic Problem in Nashik?</div>
+          <h1 class="hook-headline" id="s1-headline">
+            Tired of visiting 5 municipal offices for one civic issue?
+          </h1>
+          <div class="hook-sub" id="s1-sub">कचऱ्याची समस्या? रस्त्यावरील खड्डे? तुटलेले पथदिवे?</div>
+          <div class="hook-chips" id="s1-chips">
+            <div class="hook-chip">🗑️ Garbage Accumulation</div>
+            <div class="hook-chip">🕳️ Damaged Potholes</div>
+            <div class="hook-chip">💧 Drainage Overflow</div>
+            <div class="hook-chip">💡 Broken Streetlights</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scene 2: The Reveal (3.2s – 6.8s) -->
+      <div class="scene clip" id="scene-2" data-start="3.2" data-duration="3.6">
+        <div class="scene-inner" id="s2-inner">
+          <div class="reveal-hero" id="s2-content">
+            <div class="reveal-logo-group">
+              <div class="reveal-badge">NASHIK CIVIC TECH</div>
+              <div class="portal-badge">Single Unified Portal</div>
+            </div>
+            <h1 class="reveal-title">CleanTrack Nashik</h1>
+            <div class="reveal-tagline">Report. Track. Improve Nashik.</div>
+            <p class="reveal-desc">
+              A single, intelligent civic grievance platform built for citizens of Nashik. No more departments runarounds.
+            </p>
+            <div class="reveal-stats" id="s2-stats">
+              <div class="reveal-stat-card">
+                <div class="reveal-stat-value">6 Wards</div>
+                <div class="reveal-stat-label">Nashik Administrative Divisions</div>
+              </div>
+              <div class="reveal-stat-card">
+                <div class="reveal-stat-value">Zero Login</div>
+                <div class="reveal-stat-label">Frictionless Citizen Access</div>
+              </div>
+              <div class="reveal-stat-card">
+                <div class="reveal-stat-value">60 Seconds</div>
+                <div class="reveal-stat-label">From Problem to Tracking ID</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scene 3: On-The-Spot Live Camera (6.8s – 10.8s) -->
+      <div class="scene clip" id="scene-3" data-start="6.8" data-duration="4.0">
+        <div class="scene-inner" id="s3-inner">
+          <div class="split-layout">
+            <div class="feature-info" id="s3-info">
+              <div class="feature-pill">Real-Time Feature 01</div>
+              <h2 class="feature-title">On-The-Spot Live Camera Capture</h2>
+              <p class="feature-p">
+                Stand at the problem location and take a live photo directly through your mobile browser. Instant frame capture with automated canvas compression.
+              </p>
+              <div class="feature-checklist">
+                <div class="check-item"><span class="check-icon">✓</span> Direct Device Camera (getUserMedia API)</div>
+                <div class="check-item"><span class="check-icon">✓</span> Client-Side Compression (4MB → 280KB)</div>
+                <div class="check-item"><span class="check-icon">✓</span> Timestamp & Geo-Tag Verification</div>
+              </div>
+            </div>
+            <div class="phone-frame" id="s3-phone">
+              <div class="phone-top-island"><div class="camera-notch"></div></div>
+              <div class="phone-viewfinder">
+                <div class="camera-flash-overlay" id="s3-flash"></div>
+                <div class="camera-hud-badge">● LIVE CAMERA ACTIVE</div>
+                <div class="viewfinder-crosshair" id="s3-crosshair"></div>
+                <div class="camera-evidence-preview" id="s3-preview" style="opacity: 0;">
+                  <div class="evidence-icon">📸</div>
+                  <div class="evidence-title">Photo Captured</div>
+                  <div class="evidence-meta">Panchavati Sector 4 • Verified Evidence</div>
+                </div>
+              </div>
+              <div class="phone-bottom-controls">
+                <div style="font-size: 14px; font-weight: 600; color: #94a3b8;">Switch Cam</div>
+                <div class="camera-shutter-btn" id="s3-shutter">○</div>
+                <div style="font-size: 14px; font-weight: 600; color: #94a3b8;">Close</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scene 4: GPS Pinpoint & Ward Routing (10.8s – 14.8s) -->
+      <div class="scene clip" id="scene-4" data-start="10.8" data-duration="4.0">
+        <div class="scene-inner" id="s4-inner">
+          <div class="split-layout">
+            <div class="map-card" id="s4-map">
+              <div class="map-header">
+                <div class="map-header-title">📍 Nashik Municipal Geolocation System</div>
+                <div class="portal-badge" style="color: #10b981; border-color: #10b981;">GPS Active</div>
+              </div>
+              <div class="map-body">
+                <div class="map-grid-line" style="top: 25%; left: 0; right: 0; height: 1px;"></div>
+                <div class="map-grid-line" style="top: 50%; left: 0; right: 0; height: 1px;"></div>
+                <div class="map-grid-line" style="top: 75%; left: 0; right: 0; height: 1px;"></div>
+                <div class="map-grid-line" style="left: 33%; top: 0; bottom: 0; width: 1px;"></div>
+                <div class="map-grid-line" style="left: 66%; top: 0; bottom: 0; width: 1px;"></div>
+                <div class="map-pin-container" id="s4-pin">
+                  <div class="map-radar-pulse" id="s4-radar"></div>
+                  <div class="map-pin-icon">📍</div>
+                  <div class="map-pin-tooltip">20.0053° N, 73.7898° E (±8.5m)</div>
+                </div>
+              </div>
+              <div class="map-footer">
+                <div class="map-coord-row">
+                  <span style="color: #94a3b8;">Detected Division:</span>
+                  <span class="map-coord-val">Panchavati Administrative Zone</span>
+                </div>
+                <div class="map-coord-row">
+                  <span style="color: #94a3b8;">Validation:</span>
+                  <span class="map-coord-val">✓ Inside Nashik Boundary</span>
+                </div>
+              </div>
+            </div>
+            <div class="feature-info" id="s4-info">
+              <div class="feature-pill">Real-Time Feature 02</div>
+              <h2 class="feature-title">Precision GPS & Ward Geofencing</h2>
+              <p class="feature-p">
+                Automatic high-accuracy GPS coordinates detection with interactive map pin adjustment. Complaints are automatically routed to the right administrative department.
+              </p>
+              <div class="feature-checklist">
+                <div class="check-item"><span class="check-icon">✓</span> Accurate to ±8.5 Meters with Visual Accuracy Ring</div>
+                <div class="check-item"><span class="check-icon">✓</span> Automated Nashik Bounding Box Geofencing</div>
+                <div class="check-item"><span class="check-icon">✓</span> Automatic Ward & Department Routing</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scene 5: Reference ID & Live Tracking (14.8s – 17.5s) -->
+      <div class="scene clip" id="scene-5" data-start="14.8" data-duration="2.7">
+        <div class="scene-inner" id="s5-inner">
+          <div class="tracking-card" id="s5-card">
+            <div class="tracking-top">
+              <div class="tracking-success-header">
+                <div class="tracking-success-icon">✓</div>
+                <div>
+                  <div class="tracking-title">Complaint Registered Successfully!</div>
+                  <div class="tracking-subtitle">Citizen notification dispatched with live tracker link</div>
+                </div>
+              </div>
+              <div class="complaint-id-box">
+                <div class="complaint-id-label">Official Tracking Reference</div>
+                <div class="complaint-id-number" id="s5-id">CTN-2026-894215</div>
+              </div>
+            </div>
+            <div class="tracking-timeline">
+              <div class="timeline-bar"><div class="timeline-bar-fill" id="s5-progress"></div></div>
+              <div class="timeline-step">
+                <div class="step-circle done">✓</div>
+                <div class="step-title">Submitted</div>
+                <div class="step-sub">10:14 AM Today</div>
+              </div>
+              <div class="timeline-step">
+                <div class="step-circle done">✓</div>
+                <div class="step-title">Under Review</div>
+                <div class="step-sub">10:15 AM Verified</div>
+              </div>
+              <div class="timeline-step">
+                <div class="step-circle active" id="s5-assigned-circle">●</div>
+                <div class="step-title" style="color: #38bdf8;">Assigned</div>
+                <div class="step-sub">Panchavati Dept</div>
+              </div>
+              <div class="timeline-step">
+                <div class="step-circle">4</div>
+                <div class="step-title">Resolved</div>
+                <div class="step-sub">Citizen Confirmation</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scene 6: Outro & Punchline (17.5s – 20.0s) -->
+      <div class="scene clip" id="scene-6" data-start="17.5" data-duration="2.5">
+        <div class="scene-inner" id="s6-inner">
+          <div class="outro-card" id="s6-content">
+            <div class="outro-pill">Live in Production</div>
+            <h1 class="outro-headline">Make Nashik Cleaner & Smarter</h1>
+            <div class="outro-sub">Empowering 1.5 Million Citizens with Transparent Civic Tracking.</div>
+            <div class="outro-links">
+              <div class="outro-btn">
+                <span>🌐</span> cleantrack-nashik.vercel.app
+              </div>
+              <div class="outro-repo">
+                <span>⭐</span> github.com/Rohityadavxcode/cleantrack-nashik
+              </div>
+            </div>
+            <div class="outro-footer-note">CleanTrack Nashik • स्वच्छ नाशिक, सुंदर नाशिक</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GSAP Master Animation Timeline -->
+    <script>
+      const tl = gsap.timeline({ paused: true });
+
+      // Scene 1: Hook (0.0s - 3.2s)
+      tl.fromTo("#s1-tag", { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.4 }, 0.1)
+        .fromTo("#s1-headline", { opacity: 0, scale: 0.95 }, { opacity: 1, scale: 1, duration: 0.6, ease: "power2.out" }, 0.2)
+        .fromTo("#s1-sub", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0.4)
+        .fromTo(".hook-chip", { opacity: 0, y: 20 }, { opacity: 1, y: 0, stagger: 0.12, duration: 0.4 }, 0.6)
+        .to("#s1-inner", { opacity: 0, scale: 0.96, duration: 0.35, ease: "power2.in" }, 2.85);
+
+      // Scene 2: Reveal (3.2s - 6.8s)
+      tl.fromTo("#s2-content", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 3.25)
+        .fromTo(".reveal-stat-card", { opacity: 0, y: 20 }, { opacity: 1, y: 0, stagger: 0.14, duration: 0.5 }, 3.6)
+        .to("#s2-inner", { opacity: 0, x: -40, duration: 0.4, ease: "power2.in" }, 6.4);
+
+      // Scene 3: Camera Feature (6.8s - 10.8s)
+      tl.fromTo("#s3-info", { opacity: 0, x: -40 }, { opacity: 1, x: 0, duration: 0.5 }, 6.85)
+        .fromTo("#s3-phone", { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.6, ease: "back.out(1.2)" }, 6.9)
+        .fromTo("#s3-crosshair", { scale: 1.3, opacity: 0.3 }, { scale: 1.0, opacity: 1, duration: 0.5 }, 7.2)
+        // Camera Shutter Snap
+        .to("#s3-shutter", { scale: 0.88, duration: 0.1 }, 7.6)
+        .to("#s3-shutter", { scale: 1.0, duration: 0.15 }, 7.7)
+        .to("#s3-flash", { opacity: 0.9, duration: 0.08 }, 7.65)
+        .to("#s3-flash", { opacity: 0, duration: 0.25 }, 7.75)
+        .to("#s3-crosshair", { opacity: 0, duration: 0.1 }, 7.8)
+        .to("#s3-preview", { opacity: 1, scale: 1, duration: 0.4, ease: "power2.out" }, 7.85)
+        .to("#s3-inner", { opacity: 0, scale: 0.95, duration: 0.4 }, 10.4);
+
+      // Scene 4: GPS & Routing (10.8s - 14.8s)
+      tl.fromTo("#s4-map", { opacity: 0, x: -40 }, { opacity: 1, x: 0, duration: 0.6, ease: "power2.out" }, 10.85)
+        .fromTo("#s4-info", { opacity: 0, x: 40 }, { opacity: 1, x: 0, duration: 0.6, ease: "power2.out" }, 10.9)
+        .fromTo("#s4-pin", { scale: 0, y: -30 }, { scale: 1, y: 0, duration: 0.5, ease: "bounce.out" }, 11.2)
+        .fromTo("#s4-radar", { scale: 0.5, opacity: 1 }, { scale: 2.2, opacity: 0, duration: 1.2, repeat: 1 }, 11.4)
+        .to("#s4-inner", { opacity: 0, y: -30, duration: 0.4 }, 14.4);
+
+      // Scene 5: Reference ID & Live Tracking (14.8s - 17.5s)
+      tl.fromTo("#s5-card", { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.5, ease: "power2.out" }, 14.85)
+        .fromTo("#s5-id", { opacity: 0, scale: 1.2 }, { opacity: 1, scale: 1, duration: 0.4, ease: "power2.out" }, 15.0)
+        .fromTo("#s5-progress", { width: "0%" }, { width: "70%", duration: 0.8, ease: "power1.inOut" }, 15.2)
+        .fromTo("#s5-assigned-circle", { scale: 0.8 }, { scale: 1.15, duration: 0.3, yoyo: true, repeat: 1 }, 15.8)
+        .to("#s5-inner", { opacity: 0, scale: 0.95, duration: 0.35 }, 17.15);
+
+      // Scene 6: Outro (17.5s - 20.0s)
+      tl.fromTo("#s6-content", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 17.55)
+        .fromTo(".outro-btn, .outro-repo", { opacity: 0, y: 20 }, { opacity: 1, y: 0, stagger: 0.15, duration: 0.5 }, 17.85)
+        .to("#s6-inner", { opacity: 0.98, duration: 1.5 }, 18.5);
+
+      // Register root timeline on window.__timelines
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
