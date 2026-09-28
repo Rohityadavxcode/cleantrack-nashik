@@ -3,6 +3,9 @@
 
 An enterprise-grade, accessible, and bilingual (Marathi + English) civic problem reporting and grievance tracking web application built for the citizens and municipal administrators of Nashik, Maharashtra.
 
+🌐 **Live Production URL**: [https://cleantrack-nashik.vercel.app](https://cleantrack-nashik.vercel.app)  
+📦 **GitHub Repository**: [https://github.com/Rohityadavxcode/cleantrack-nashik](https://github.com/Rohityadavxcode/cleantrack-nashik)
+
 ---
 
 ## 🏛️ Vision & Architecture
