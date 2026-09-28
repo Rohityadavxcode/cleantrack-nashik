@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+  }
+
+  body {
+    color: #1e293b;
+    background-color: #f8fafc;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Devanagari', 'Helvetica Neue', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Leaflet map styles */
+@import 'leaflet/dist/leaflet.css';
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  border-radius: 0.5rem;
+}
+
+/* Subtle Indian Tricolor bar */
+.tiranga-stripe {
+  background: linear-gradient(
+    to right,
+    #ff9933 0%,
+    #ff9933 33.33%,
+    #ffffff 33.33%,
+    #ffffff 66.66%,
+    #138808 66.66%,
+    #138808 100%
+  );
+  height: 4px;
+}
+
+/* High contrast civic focus */
+input:focus, select:focus, textarea:focus, button:focus-visible {
+  outline: 2px solid #0284c7;
+  outline-offset: 2px;
+}

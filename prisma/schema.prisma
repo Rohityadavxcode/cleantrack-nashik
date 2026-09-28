@@ -1,0 +1,247 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                String       @id @default(cuid())
+  name              String
+  mobile            String       @unique
+  email             String?      @unique
+  passwordHash      String?
+  role              String       @default("CITIZEN") // CITIZEN, OFFICER, DEPARTMENT_MANAGER, ADMIN, SUPER_ADMIN
+  preferredLanguage String       @default("en")      // en, mr
+  departmentId      String?
+  department        Department?  @relation(fields: [departmentId], references: [id])
+  zoneId            String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  complaints        Complaint[]
+  notifications     Notification[]
+}
+
+model Complaint {
+  id                  String                    @id @default(cuid())
+  referenceId         String                    @unique // e.g. CTN-2026-000123
+  title               String
+  description         String
+  categoryId          String
+  category            ComplaintCategory         @relation(fields: [categoryId], references: [id])
+  subcategoryId       String?
+  subcategory         ComplaintSubcategory?     @relation(fields: [subcategoryId], references: [id])
+  status              String                    @default("SUBMITTED") // SUBMITTED, RECEIVED, UNDER_REVIEW, ASSIGNED, IN_PROGRESS, RESOLVED, CLOSED, REJECTED, DUPLICATE, INVALID_LOCATION, MORE_INFORMATION_REQUIRED, REOPENED
+  urgency             String                    @default("MEDIUM")    // LOW, MEDIUM, HIGH, CRITICAL
+  duration            String?                                         // e.g. "1-2 days", "More than a week"
+  isBlockingTraffic   Boolean                   @default(false)
+  isHealthHazard      Boolean                   @default(false)
+  
+  // Citizen contact information
+  userId              String?
+  user                User?                     @relation(fields: [userId], references: [id])
+  citizenName         String
+  citizenMobile       String
+  citizenEmail        String?
+  citizenLanguage     String                    @default("en")
+
+  // Department handling
+  departmentId        String?
+  department          Department?               @relation(fields: [departmentId], references: [id])
+  assignedOfficerName String?
+  assignedOfficerId   String?
+
+  // SLA & Dates
+  slaDueAt            DateTime?
+  isOverdue           Boolean                   @default(false)
+  resolvedAt          DateTime?
+  closedAt            DateTime?
+  resolutionSummary   String?
+  resolutionPhoto     String?
+
+  // Flags & Relations
+  isDuplicateFlagged  Boolean                   @default(false)
+  duplicateOfId       String?
+  
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  location            ComplaintLocation?
+  photos              ComplaintPhoto[]
+  history             ComplaintStatusHistory[]
+  feedback            CitizenFeedback?
+  notifications       Notification[]
+  reminders           Reminder[]
+
+  @@index([referenceId])
+  @@index([status])
+  @@index([categoryId])
+  @@index([departmentId])
+  @@index([createdAt])
+}
+
+model ComplaintLocation {
+  id          String    @id @default(cuid())
+  complaintId String    @unique
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  latitude    Float
+  longitude   Float
+  address     String
+  landmark    String?
+  zoneName    String    // Panchavati, Nashik West, Nashik East, CIDCO, Satpur, Nashik Road
+  wardNumber  String?
+  locality    String?
+  postalCode  String?
+  
+  createdAt   DateTime  @default(now())
+
+  @@index([latitude, longitude])
+  @@index([zoneName])
+}
+
+model ComplaintPhoto {
+  id                String    @id @default(cuid())
+  complaintId       String
+  complaint         Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  url               String
+  caption           String?
+  isResolutionProof Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+
+  @@index([complaintId])
+}
+
+model ComplaintStatusHistory {
+  id            String    @id @default(cuid())
+  complaintId   String
+  complaint     Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  fromStatus    String?
+  toStatus      String
+  changedByName String
+  changedById   String?
+  notes         String?
+  publicNote    String?
+  createdAt     DateTime  @default(now())
+
+  @@index([complaintId])
+}
+
+model CitizenFeedback {
+  id                String    @id @default(cuid())
+  complaintId       String    @unique
+  complaint         Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  resolutionQuality String    // YES_RESOLVED, NOT_FULLY_RESOLVED, NO_STILL_EXISTS
+  feedbackText      String?
+  feedbackPhoto     String?
+  rating            Int?      // 1-5
+  createdAt         DateTime  @default(now())
+}
+
+model Department {
+  id           String              @id @default(cuid())
+  name         String              // English Name (e.g. Sanitation Department)
+  nameMarathi  String              // Marathi Name (e.g. स्वच्छता विभाग)
+  code         String              @unique // SANITATION, ROADS, WATER, etc.
+  description  String?
+  contactEmail String?
+  contactPhone String?
+  isActive     Boolean             @default(true)
+  categories   ComplaintCategory[]
+  complaints   Complaint[]
+  users        User[]
+  reminders    Reminder[]
+  createdAt    DateTime            @default(now())
+}
+
+model ComplaintCategory {
+  id                  String                 @id @default(cuid())
+  code                String                 @unique // GARBAGE, ROADS, DRAINAGE, etc.
+  name                String
+  nameMarathi         String
+  description         String?
+  icon                String                 // Lucide icon name identifier
+  defaultDepartmentId String?
+  defaultDepartment   Department?            @relation(fields: [defaultDepartmentId], references: [id])
+  defaultSlaHours     Int                    @default(48)
+  isActive            Boolean                @default(true)
+  subcategories       ComplaintSubcategory[]
+  complaints          Complaint[]
+  createdAt           DateTime               @default(now())
+}
+
+model ComplaintSubcategory {
+  id          String            @id @default(cuid())
+  categoryId  String
+  category    ComplaintCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name        String
+  nameMarathi String
+  isActive    Boolean           @default(true)
+  complaints  Complaint[]
+  createdAt   DateTime          @default(now())
+
+  @@index([categoryId])
+}
+
+model AreaZone {
+  id               String   @id @default(cuid())
+  name             String
+  nameMarathi      String
+  code             String   @unique // PANCHAVATI, NASHIK_WEST, NASHIK_EAST, CIDCO, SATPUR, NASHIK_ROAD
+  wardCount        Int      @default(5)
+  centerLatitude   Float
+  centerLongitude  Float
+  officeAddress    String?
+  emergencyContact String?
+  createdAt        DateTime @default(now())
+}
+
+model Notification {
+  id              String     @id @default(cuid())
+  userId          String?
+  user            User?      @relation(fields: [userId], references: [id])
+  complaintId     String?
+  complaint       Complaint? @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  recipientMobile String?
+  recipientEmail  String?
+  title           String
+  message         String
+  type            String     // STATUS_UPDATE, REMINDER, RESOLUTION, OVERDUE_ALERT, FEEDBACK_REQUEST
+  channel         String     // IN_APP, SMS, EMAIL, WHATSAPP
+  isRead          Boolean    @default(false)
+  sentAt          DateTime   @default(now())
+
+  @@index([userId])
+  @@index([complaintId])
+}
+
+model Reminder {
+  id                 String      @id @default(cuid())
+  complaintId        String
+  complaint          Complaint   @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  targetDepartmentId String?
+  targetDepartment   Department? @relation(fields: [targetDepartmentId], references: [id])
+  triggerReason      String      // SLA_WARNING, SLA_BREACH, CITIZEN_FOLLOWUP
+  sentCount          Int         @default(1)
+  lastSentAt         DateTime    @default(now())
+
+  @@index([complaintId])
+}
+
+model AdminActionLog {
+  id            String   @id @default(cuid())
+  actorId       String?
+  actorName     String
+  action        String   // STATUS_CHANGE, ASSIGN_DEPARTMENT, ADD_NOTE, MARK_DUPLICATE, SLA_UPDATE, REOPEN
+  entityType    String   @default("COMPLAINT")
+  entityId      String
+  previousValue String?
+  newValue      String?
+  metadata      String?  // JSON string
+  createdAt     DateTime @default(now())
+
+  @@index([entityId])
+  @@index([action])
+  @@index([createdAt])
+}
