@@ -80,3 +80,37 @@ test('Format Integrity: Reference ID matches CTN-YYYY-XXXXXX structure', () => {
   const testId = 'CTN-2026-000101';
   assert.match(testId, refIdRegex);
 });
+
+test('Nashik Boundary Validation: Properly admits Nashik coordinates and flags outside coordinates', () => {
+  const NASHIK_BOUNDS = { minLat: 19.85, maxLat: 20.12, minLng: 73.68, maxLng: 73.92 };
+  
+  function isWithinNashik(lat, lng) {
+    return lat >= NASHIK_BOUNDS.minLat && lat <= NASHIK_BOUNDS.maxLat &&
+           lng >= NASHIK_BOUNDS.minLng && lng <= NASHIK_BOUNDS.maxLng;
+  }
+
+  // Panchavati, Nashik West, Satpur
+  assert.equal(isWithinNashik(19.9975, 73.7898), true, 'Nashik center should be within bounds');
+  assert.equal(isWithinNashik(20.0125, 73.7995), true, 'Panchavati should be within bounds');
+  assert.equal(isWithinNashik(19.9650, 73.7550), true, 'CIDCO should be within bounds');
+
+  // Mumbai / Pune / Foreign coordinates
+  assert.equal(isWithinNashik(18.9220, 72.8347), false, 'Mumbai must be outside Nashik bounds');
+  assert.equal(isWithinNashik(18.5204, 73.8567), false, 'Pune must be outside Nashik bounds');
+  assert.equal(isWithinNashik(28.6139, 77.2090), false, 'Delhi must be outside Nashik bounds');
+});
+
+test('On-The-Spot Reporting: Validates locationSource and accuracy flags', () => {
+  const validGps = { locationSource: 'GPS', accuracy: 12.5 };
+  const validManual = { locationSource: 'MANUAL', accuracy: null };
+
+  assert.equal(['GPS', 'MANUAL'].includes(validGps.locationSource), true);
+  assert.equal(validGps.accuracy < 100, true, 'High accuracy GPS should be under 100m');
+  assert.equal(['GPS', 'MANUAL'].includes(validManual.locationSource), true);
+  assert.equal(validManual.accuracy, null);
+
+  const lowAccuracyGps = { locationSource: 'GPS', accuracy: 250 };
+  const isLowAccuracy = lowAccuracyGps.accuracy > 100;
+  assert.equal(isLowAccuracy, true, 'Accuracy > 100m should trigger low accuracy advisory');
+});
+

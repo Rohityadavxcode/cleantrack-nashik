@@ -64,6 +64,8 @@ model Complaint {
   // Flags & Relations
   isDuplicateFlagged  Boolean                   @default(false)
   duplicateOfId       String?
+  idempotencyKey      String?                   @unique
+  submittedAt         DateTime                  @default(now())
   
   createdAt           DateTime                  @default(now())
   updatedAt           DateTime                  @updatedAt
@@ -83,19 +85,22 @@ model Complaint {
 }
 
 model ComplaintLocation {
-  id          String    @id @default(cuid())
-  complaintId String    @unique
-  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
-  latitude    Float
-  longitude   Float
-  address     String
-  landmark    String?
-  zoneName    String    // Panchavati, Nashik West, Nashik East, CIDCO, Satpur, Nashik Road
-  wardNumber  String?
-  locality    String?
-  postalCode  String?
+  id             String    @id @default(cuid())
+  complaintId    String    @unique
+  complaint      Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  latitude       Float
+  longitude      Float
+  accuracy       Float?    // Accuracy in meters from device GPS
+  locationSource String    @default("GPS") // "GPS" or "MANUAL"
+  address        String
+  landmark       String?
+  zoneName       String    // Panchavati, Nashik West, Nashik East, CIDCO, Satpur, Nashik Road
+  wardNumber     String?
+  locality       String?
+  postalCode     String?
+  capturedAt     DateTime?
   
-  createdAt   DateTime  @default(now())
+  createdAt      DateTime  @default(now())
 
   @@index([latitude, longitude])
   @@index([zoneName])
@@ -108,6 +113,7 @@ model ComplaintPhoto {
   url               String
   caption           String?
   isResolutionProof Boolean   @default(false)
+  capturedAt        DateTime?
   createdAt         DateTime  @default(now())
 
   @@index([complaintId])

@@ -256,11 +256,19 @@ function TrackComplaintContent() {
 
           {/* 2. Geolocation Map & Location Card */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-4">
-            <div className="flex items-center space-x-2">
-              <MapPin className="w-5 h-5 text-civic-700" />
-              <h3 className="text-base font-bold text-slate-900">
-                Civic Issue Location ({complaint.zoneName})
-              </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center space-x-2">
+                <MapPin className="w-5 h-5 text-civic-700" />
+                <h3 className="text-base font-bold text-slate-900">
+                  Civic Issue Location ({complaint.zoneName})
+                </h3>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-100 text-sky-900">
+                  {complaint.locationSource === 'GPS' ? '📍 Real GPS' : '📍 Manual Pin'}
+                  {complaint.accuracy ? ` (±${Math.round(complaint.accuracy)}m)` : ''}
+                </span>
+              </div>
             </div>
             <p className="text-xs text-slate-600 font-medium">
               {complaint.address} {complaint.landmark ? `(Landmark: ${complaint.landmark})` : ''}

@@ -241,11 +241,26 @@ export default function AdminComplaintManagementPage({
 
           {/* Location & Map */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-3">
-            <div className="flex items-center space-x-2">
-              <MapPin className="w-5 h-5 text-civic-700" />
-              <h3 className="font-bold text-slate-900 text-base">
-                Location Details ({complaint.location?.zoneName})
-              </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center space-x-2">
+                <MapPin className="w-5 h-5 text-civic-700" />
+                <h3 className="font-bold text-slate-900 text-base">
+                  Location Details ({complaint.location?.zoneName})
+                </h3>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-100 text-sky-900">
+                  {complaint.location?.locationSource === 'GPS' ? '📍 Real GPS' : '📍 Manual Pin'}
+                  {complaint.location?.accuracy
+                    ? ` (±${Math.round(complaint.location.accuracy)}m)`
+                    : ''}
+                </span>
+                {complaint.location?.capturedAt && (
+                  <span className="text-[11px] text-slate-500 font-mono">
+                    Captured: {new Date(complaint.location.capturedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
+              </div>
             </div>
             <p className="text-xs text-slate-600">
               {complaint.location?.address} {complaint.location?.landmark ? `(${complaint.location.landmark})` : ''}
@@ -265,20 +280,33 @@ export default function AdminComplaintManagementPage({
 
           {/* Evidence Photos */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-3">
-            <h3 className="font-bold text-slate-900 text-base flex items-center space-x-2">
-              <Camera className="w-5 h-5 text-civic-700" />
-              <span>Evidence Photos</span>
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-slate-900 text-base flex items-center space-x-2">
+                <Camera className="w-5 h-5 text-civic-700" />
+                <span>Evidence Photos ({complaint.photos?.length || 0})</span>
+              </h3>
+              {complaint.photos?.[0]?.capturedAt && (
+                <span className="text-xs text-slate-400 font-mono">
+                  Snapped: {new Date(complaint.photos[0].capturedAt).toLocaleString('en-IN')}
+                </span>
+              )}
+            </div>
 
             {complaint.photos && complaint.photos.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {complaint.photos.map((p: any) => (
-                  <img
-                    key={p.id}
-                    src={p.url}
-                    alt="Complaint photo"
-                    className="w-full h-32 object-cover rounded-lg border border-slate-200"
-                  />
+                  <div key={p.id} className="relative rounded-lg overflow-hidden border border-slate-200 group">
+                    <img
+                      src={p.url}
+                      alt="Complaint photo"
+                      className="w-full h-36 object-cover"
+                    />
+                    {p.capturedAt && (
+                      <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-950/80 text-white font-mono">
+                        {new Date(p.capturedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    )}
+                  </div>
                 ))}
               </div>
             ) : (

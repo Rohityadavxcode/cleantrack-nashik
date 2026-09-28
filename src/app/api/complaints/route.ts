@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { complaintSubmissionSchema } from '@/validations/complaint.schema';
 import { NotificationService } from '@/services/notification.service';
 import { AuditService } from '@/services/audit.service';
+import { isWithinNashikServiceArea } from '@/lib/geo';
 
 export const dynamic = 'force-dynamic';
 
@@ -121,7 +122,39 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validated = complaintSubmissionSchema.parse(body);
 
-    // 1. Fetch Category to determine default SLA & Department
+    // 0. Double-submission idempotency protection
+    if (validated.idempotencyKey) {
+      const existing = await prisma.complaint.findUnique({
+        where: { idempotencyKey: validated.idempotencyKey },
+        include: { location: true, photos: true, category: true },
+      });
+      if (existing) {
+        return NextResponse.json({
+          success: true,
+          message: 'Complaint already registered (idempotent)',
+          referenceId: existing.referenceId,
+          complaintId: existing.id,
+          status: existing.status,
+          submittedAt: existing.submittedAt,
+        });
+      }
+    }
+
+    // 1. Validate Nashik Service Area Boundaries
+    const geoCheck = isWithinNashikServiceArea(validated.latitude, validated.longitude);
+    if (!geoCheck.isWithin) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: geoCheck.reason || 'This location appears to be outside the CleanTrack Nashik reporting area.',
+          isOutsideArea: true,
+          distanceFromCenterKm: geoCheck.distanceFromCenterKm,
+        },
+        { status: 400 }
+      );
+    }
+
+    // 2. Fetch Category to determine default SLA & Department
     const category = await prisma.complaintCategory.findUnique({
       where: { id: validated.categoryId },
     });
@@ -133,7 +166,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Calculate SLA Due Date
+    // 3. Calculate SLA Due Date
     let slaHours = category.defaultSlaHours || 48;
     if (validated.urgency === 'CRITICAL') slaHours = 12;
     else if (validated.urgency === 'HIGH') slaHours = 24;
@@ -142,13 +175,23 @@ export async function POST(req: NextRequest) {
     const slaDueAt = new Date();
     slaDueAt.setHours(slaDueAt.getHours() + slaHours);
 
-    // 3. Generate Reference ID
+    // 4. Generate Reference ID
     const referenceId = await generateReferenceId();
 
-    // 4. Create Complaint in Database with nested location, photos, and initial history
+    const photoCapturedAtDate = validated.photoCapturedAt
+      ? new Date(validated.photoCapturedAt)
+      : new Date();
+    const locationCapturedAtDate = validated.locationCapturedAt
+      ? new Date(validated.locationCapturedAt)
+      : new Date();
+    const submissionDate = new Date();
+
+    // 5. Create Complaint in Database with nested location, photos, and initial history
     const complaint = await prisma.complaint.create({
       data: {
         referenceId,
+        idempotencyKey: validated.idempotencyKey || null,
+        submittedAt: submissionDate,
         title: validated.title,
         description: validated.description,
         categoryId: validated.categoryId,
@@ -168,17 +211,21 @@ export async function POST(req: NextRequest) {
           create: {
             latitude: validated.latitude,
             longitude: validated.longitude,
+            accuracy: validated.accuracy || null,
+            locationSource: validated.locationSource || 'GPS',
             address: validated.address,
             landmark: validated.landmark || null,
-            zoneName: validated.zoneName,
+            zoneName: validated.zoneName || geoCheck.nearestZone || 'Panchavati Zone',
             wardNumber: validated.wardNumber || null,
             locality: validated.locality || null,
+            capturedAt: locationCapturedAtDate,
           },
         },
         photos: {
           create: validated.photos.map((url) => ({
             url,
             isResolutionProof: false,
+            capturedAt: photoCapturedAtDate,
           })),
         },
         history: {
@@ -186,7 +233,9 @@ export async function POST(req: NextRequest) {
             fromStatus: null,
             toStatus: 'SUBMITTED',
             changedByName: `${validated.citizenName} (Citizen)`,
-            notes: 'Complaint filed through CleanTrack Nashik portal.',
+            notes: `Complaint filed through CleanTrack Nashik portal (Location Source: ${validated.locationSource || 'GPS'}${
+              validated.accuracy ? `, ±${Math.round(validated.accuracy)}m` : ''
+            }).`,
           },
         },
       },
@@ -198,10 +247,10 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 5. Dispatch notification to citizen
+    // 6. Dispatch notification to citizen
     await NotificationService.notifySubmitted(complaint);
 
-    // 6. Append audit log
+    // 7. Append audit log
     await AuditService.logAction({
       actorName: validated.citizenName,
       action: 'STATUS_CHANGE',
@@ -212,6 +261,8 @@ export async function POST(req: NextRequest) {
         referenceId: complaint.referenceId,
         zoneName: validated.zoneName,
         category: category.name,
+        locationSource: validated.locationSource,
+        accuracy: validated.accuracy,
       },
     });
 
@@ -221,6 +272,9 @@ export async function POST(req: NextRequest) {
         message: 'Complaint successfully registered',
         referenceId: complaint.referenceId,
         complaintId: complaint.id,
+        status: complaint.status,
+        submittedAt: complaint.submittedAt,
+        location: complaint.location,
       },
       { status: 201 }
     );

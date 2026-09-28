@@ -19,11 +19,14 @@ export const complaintSubmissionSchema = z.object({
   // Geolocation
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
+  accuracy: z.number().optional().nullable(),
+  locationSource: z.enum(['GPS', 'MANUAL']).default('GPS'),
   address: z.string().min(3, 'Address is required'),
   landmark: z.string().optional().nullable(),
   zoneName: z.string().min(1, 'Administrative zone is required'),
   wardNumber: z.string().optional().nullable(),
   locality: z.string().optional().nullable(),
+  locationCapturedAt: z.string().optional().nullable(),
 
   // Citizen Contact
   citizenName: z.string().min(2, 'Please enter your full name'),
@@ -34,7 +37,11 @@ export const complaintSubmissionSchema = z.object({
   citizenLanguage: z.enum(['en', 'mr']).default('en'),
 
   // Photos
-  photos: z.array(z.string()).max(3, 'Maximum 3 photos allowed').default([]),
+  photos: z.array(z.string()).max(5, 'Maximum 5 photos allowed').default([]),
+  photoCapturedAt: z.string().optional().nullable(),
+
+  // Idempotency
+  idempotencyKey: z.string().optional().nullable(),
 });
 
 export const statusUpdateSchema = z.object({

@@ -9,8 +9,13 @@ import {
   NASHIK_COORDINATES,
   NASHIK_ZONES,
 } from '@/lib/constants';
+import { isWithinNashikServiceArea } from '@/lib/geo';
 import { CategoryIcon } from '@/components/ui/CategoryIcon';
 import { LocationPickerMap } from '@/components/maps/LocationPickerMap';
+import {
+  LiveCameraCapture,
+  CapturedPhoto,
+} from '@/components/camera/LiveCameraCapture';
 import {
   CheckCircle2,
   Camera,
@@ -25,6 +30,8 @@ import {
   Loader2,
   Clock,
   Sparkles,
+  Crosshair,
+  Lock,
 } from 'lucide-react';
 
 function ReportProblemContent() {
@@ -34,6 +41,7 @@ function ReportProblemContent() {
   const searchParams = useSearchParams();
 
   // Wizard Step: 1 to 6
+  // 1: Category, 2: Photo (Camera), 3: Location (GPS), 4: Details, 5: Citizen Contact, 6: Review & Submit
   const [currentStep, setCurrentStep] = useState(1);
 
   // Form State
@@ -42,21 +50,26 @@ function ReportProblemContent() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<string>('');
 
-  const [photos, setPhotos] = useState<string[]>([]);
-  const [isCompressing, setIsCompressing] = useState(false);
+  // Real Camera & Photos State
+  const [photos, setPhotos] = useState<CapturedPhoto[]>([]);
+  const [photoCapturedAt, setPhotoCapturedAt] = useState<string | null>(null);
 
+  // Real-Time GPS & Location State
+  const [latitude, setLatitude] = useState<number>(NASHIK_COORDINATES.center.lat);
+  const [longitude, setLongitude] = useState<number>(NASHIK_COORDINATES.center.lng);
+  const [accuracy, setAccuracy] = useState<number | null>(null);
+  const [locationSource, setLocationSource] = useState<'GPS' | 'MANUAL'>('GPS');
+  const [locationCapturedAt, setLocationCapturedAt] = useState<string | null>(null);
+  const [address, setAddress] = useState<string>('Nashik, Maharashtra');
+  const [zoneName, setZoneName] = useState<string>('Panchavati Zone');
+
+  // Details
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [duration, setDuration] = useState('2-3 days');
   const [urgency, setUrgency] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'>('MEDIUM');
   const [isBlockingTraffic, setIsBlockingTraffic] = useState(false);
   const [isHealthHazard, setIsHealthHazard] = useState(false);
-
-  // Geolocation
-  const [latitude, setLatitude] = useState<number>(NASHIK_COORDINATES.center.lat);
-  const [longitude, setLongitude] = useState<number>(NASHIK_COORDINATES.center.lng);
-  const [address, setAddress] = useState<string>('Nashik, Maharashtra');
-  const [zoneName, setZoneName] = useState<string>('Panchavati Zone');
 
   // Duplicate Detection
   const [duplicateWarning, setDuplicateWarning] = useState<any | null>(null);
@@ -72,13 +85,19 @@ function ReportProblemContent() {
   );
   const [useSavedDetails, setUseSavedDetails] = useState(!!user);
 
-  // Auto-Save Draft State (Section 30)
+  // Idempotency Key (Generated once per report session to prevent duplicate submissions)
+  const [idempotencyKey] = useState<string>(
+    () => `ctn_idem_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+  );
+
+  // Auto-Save Draft State
   const [savedDraft, setSavedDraft] = useState<any | null>(null);
   const [copiedId, setCopiedId] = useState(false);
 
   // Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedRefId, setSubmittedRefId] = useState<string | null>(null);
+  const [submittedComplaint, setSubmittedComplaint] = useState<any | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Check for unfinished draft on mount
@@ -96,11 +115,11 @@ function ReportProblemContent() {
     }
   }, []);
 
-  // Auto-save form draft whenever fields change
+  // Auto-save form draft whenever key fields change
   useEffect(() => {
     if (submittedRefId) return; // Don't save after success
     const timer = setTimeout(() => {
-      if (title || description || selectedCategoryId) {
+      if (title || description || selectedCategoryId || photos.length > 0) {
         try {
           localStorage.setItem(
             'cleantrack_draft',
@@ -116,13 +135,19 @@ function ReportProblemContent() {
               isHealthHazard,
               latitude,
               longitude,
+              accuracy,
+              locationSource,
               address,
               zoneName,
               citizenName,
               citizenMobile,
               citizenEmail,
               currentStep,
-              savedAt: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+              photoCount: photos.length,
+              savedAt: new Date().toLocaleTimeString('en-IN', {
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
             })
           );
         } catch (e) {
@@ -143,12 +168,15 @@ function ReportProblemContent() {
     isHealthHazard,
     latitude,
     longitude,
+    accuracy,
+    locationSource,
     address,
     zoneName,
     citizenName,
     citizenMobile,
     citizenEmail,
     currentStep,
+    photos.length,
     submittedRefId,
   ]);
 
@@ -165,6 +193,8 @@ function ReportProblemContent() {
     if (savedDraft.isHealthHazard !== undefined) setIsHealthHazard(savedDraft.isHealthHazard);
     if (savedDraft.latitude) setLatitude(savedDraft.latitude);
     if (savedDraft.longitude) setLongitude(savedDraft.longitude);
+    if (savedDraft.accuracy !== undefined) setAccuracy(savedDraft.accuracy);
+    if (savedDraft.locationSource) setLocationSource(savedDraft.locationSource);
     if (savedDraft.address) setAddress(savedDraft.address);
     if (savedDraft.zoneName) setZoneName(savedDraft.zoneName);
     if (savedDraft.citizenName) setCitizenName(savedDraft.citizenName);
@@ -199,11 +229,10 @@ function ReportProblemContent() {
           if (json.success && json.data.length > 0) {
             setCategories(json.data);
 
-            // Check query param (e.g. /report?category=ROADS)
             const paramCat = searchParams.get('category');
-            const target = json.data.find(
-              (c: any) => c.code === (paramCat || 'GARBAGE')
-            ) || json.data[0];
+            const target =
+              json.data.find((c: any) => c.code === (paramCat || 'GARBAGE')) ||
+              json.data[0];
 
             setSelectedCategoryId(target.id);
             setSelectedCategoryCode(target.code);
@@ -225,62 +254,7 @@ function ReportProblemContent() {
     }
   }, [user, useSavedDetails]);
 
-
-  // Client-side image compression with Canvas
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    if (photos.length + files.length > 3) {
-      alert('You can upload a maximum of 3 photos.');
-      return;
-    }
-
-    setIsCompressing(true);
-    const newPhotos: string[] = [];
-
-    Array.from(files).forEach((file) => {
-      if (!file.type.startsWith('image/')) {
-        alert('Please upload image files only.');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1200;
-          const scaleSize = MAX_WIDTH / img.width;
-          const width = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
-          const height = img.width > MAX_WIDTH ? img.height * scaleSize : img.height;
-
-          canvas.width = width;
-          canvas.height = height;
-
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
-            const compressed = canvas.toDataURL('image/jpeg', 0.8);
-            newPhotos.push(compressed);
-
-            if (newPhotos.length === files.length) {
-              setPhotos((prev) => [...prev, ...newPhotos]);
-              setIsCompressing(false);
-            }
-          }
-        };
-        img.src = event.target?.result as string;
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const removePhoto = (index: number) => {
-    setPhotos((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  // Duplicate Check Trigger (When moving from Location to Contact)
+  // Duplicate Check Trigger (When moving from Location to Details)
   const triggerDuplicateCheck = async () => {
     if (!selectedCategoryId) return;
     setIsCheckingDuplicate(true);
@@ -318,25 +292,34 @@ function ReportProblemContent() {
     }
 
     if (currentStep === 2) {
-      // Photos are recommended, but not strictly blocking if citizen doesn't have camera
+      // Photo is strongly encouraged; allow forward if user has no camera hardware
       return true;
     }
 
     if (currentStep === 3) {
-      if (!title.trim() || title.length < 5) {
-        setErrorMessage('Please enter a clear title (at least 5 characters).');
+      // Validate Nashik Service Area
+      const check = isWithinNashikServiceArea(latitude, longitude);
+      if (!check.isWithin) {
+        setErrorMessage(
+          check.reason ||
+            'Selected location is outside the Nashik Municipal Corporation service boundary. Please select a location in Nashik.'
+        );
         return false;
       }
-      if (!description.trim() || description.length < 15) {
-        setErrorMessage('Please provide a meaningful description (at least 15 characters).');
+      if (!address.trim()) {
+        setErrorMessage('Please confirm a valid address or landmark in Nashik.');
         return false;
       }
       return true;
     }
 
     if (currentStep === 4) {
-      if (!address.trim()) {
-        setErrorMessage('Please confirm a valid location or landmark in Nashik.');
+      if (!title.trim() || title.length < 5) {
+        setErrorMessage('Please enter a clear title (at least 5 characters).');
+        return false;
+      }
+      if (!description.trim() || description.length < 15) {
+        setErrorMessage('Please provide a meaningful description (at least 15 characters).');
         return false;
       }
       return true;
@@ -361,7 +344,8 @@ function ReportProblemContent() {
   const handleNext = async () => {
     if (!validateStep()) return;
 
-    if (currentStep === 4) {
+    // Trigger duplicate check when leaving Location step
+    if (currentStep === 3) {
       await triggerDuplicateCheck();
     }
 
@@ -375,6 +359,7 @@ function ReportProblemContent() {
 
   // Final Submission
   const handleSubmit = async () => {
+    if (isSubmitting) return; // Prevent double submit
     setIsSubmitting(true);
     setErrorMessage(null);
 
@@ -390,13 +375,18 @@ function ReportProblemContent() {
         isHealthHazard,
         latitude,
         longitude,
+        accuracy: accuracy || null,
+        locationSource,
+        locationCapturedAt: locationCapturedAt || new Date().toISOString(),
         address,
         zoneName,
         citizenName,
         citizenMobile,
         citizenEmail: citizenEmail || null,
         citizenLanguage,
-        photos,
+        photos: photos.map((p) => p.dataUrl),
+        photoCapturedAt: photoCapturedAt || photos[0]?.capturedAt || null,
+        idempotencyKey,
       };
 
       const res = await fetch('/api/complaints', {
@@ -409,15 +399,28 @@ function ReportProblemContent() {
 
       if (res.ok && data.success) {
         setSubmittedRefId(data.referenceId);
+        setSubmittedComplaint({
+          referenceId: data.referenceId,
+          status: data.status || 'SUBMITTED',
+          submittedAt: data.submittedAt || new Date().toISOString(),
+          location: data.location || { address, zoneName, latitude, longitude, locationSource, accuracy },
+          photosCount: photos.length,
+          title,
+        });
+
         try {
           localStorage.removeItem('cleantrack_draft');
           setSavedDraft(null);
         } catch (e) {}
       } else {
-        setErrorMessage(data.error || 'Failed to submit complaint. Please check your inputs.');
+        setErrorMessage(
+          data.error || 'Failed to submit complaint. Please check your inputs and try again.'
+        );
       }
     } catch (err) {
-      setErrorMessage('Network error occurred. Please try again.');
+      setErrorMessage(
+        'Network error occurred. Your photos and details have been preserved. Please try submitting again.'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -429,21 +432,25 @@ function ReportProblemContent() {
   if (submittedRefId) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16">
-        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-8 sm:p-10 text-center space-y-6">
+        <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 p-8 sm:p-10 text-center space-y-6">
           <div className="w-20 h-20 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
             <CheckCircle2 className="w-12 h-12" />
           </div>
 
           <div className="space-y-2">
+            <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider">
+              {language === 'mr' ? 'नोंदणी यशस्वी ✓' : 'Report Registered Successfully ✓'}
+            </span>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
               {t.report.successTitle}
             </h1>
-            <p className="text-sm text-slate-600 max-w-md mx-auto">
+            <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto">
               {t.report.successSubtitle}
             </p>
           </div>
 
-          <div className="p-6 bg-slate-50 border-2 border-dashed border-civic-300 rounded-xl space-y-3">
+          {/* Reference ID Card */}
+          <div className="p-6 bg-slate-50 border-2 border-dashed border-civic-300 rounded-2xl space-y-3">
             <span className="text-xs uppercase font-bold text-slate-500 tracking-wider">
               {t.report.yourRefId}
             </span>
@@ -469,7 +476,25 @@ function ReportProblemContent() {
               )}
             </button>
 
-            <p className="text-xs text-slate-500 pt-1">
+            {/* Real captured metadata summary */}
+            <div className="pt-3 border-t border-slate-200/80 grid grid-cols-2 gap-2 text-[11px] text-slate-600 text-left">
+              <div>
+                <span className="text-slate-400 block">Location Source:</span>
+                <strong className="text-slate-800">
+                  {locationSource === 'GPS'
+                    ? `GPS (±${accuracy ? Math.round(accuracy) : 10}m)`
+                    : 'Manual Pin'}
+                </strong>
+              </div>
+              <div>
+                <span className="text-slate-400 block">Submitted At:</span>
+                <strong className="text-slate-800">
+                  {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </strong>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-500 pt-1">
               Save this ID for reference. An SMS confirmation was sent to{' '}
               <span className="font-semibold text-slate-700">******{citizenMobile.slice(-4)}</span>.
             </p>
@@ -491,6 +516,7 @@ function ReportProblemContent() {
             <button
               onClick={() => {
                 setSubmittedRefId(null);
+                setSubmittedComplaint(null);
                 setCurrentStep(1);
                 setTitle('');
                 setDescription('');
@@ -506,7 +532,6 @@ function ReportProblemContent() {
     );
   }
 
-
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-8">
       {/* Title & Progress Header */}
@@ -521,7 +546,7 @@ function ReportProblemContent() {
           <p className="text-xs sm:text-sm text-slate-600">{t.report.subtitle}</p>
         </div>
 
-        {/* Auto-Save Draft Recovery Banner (Section 30) */}
+        {/* Auto-Save Draft Recovery Banner */}
         {savedDraft && (
           <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
             <div className="flex items-center space-x-2 text-xs text-amber-900 font-medium">
@@ -530,7 +555,9 @@ function ReportProblemContent() {
                 <strong className="text-amber-950 font-bold block text-sm">
                   Unfinished report found ({savedDraft.savedAt || 'Saved'})
                 </strong>
-                <span>You have an autosaved report draft. Would you like to continue where you left off?</span>
+                <span>
+                  You have an autosaved report draft. Would you like to continue where you left off?
+                </span>
               </div>
             </div>
             <div className="flex items-center space-x-2 shrink-0">
@@ -552,43 +579,55 @@ function ReportProblemContent() {
           </div>
         )}
 
-        {/* 6-Step Multi-Stage Stepper */}
-        <div className="grid grid-cols-6 gap-1 sm:gap-2 pt-2">
-          {[
-            { step: 1, label: t.report.step1 },
-            { step: 2, label: t.report.step2 },
-            { step: 3, label: t.report.step3 },
-            { step: 4, label: t.report.step4 },
-            { step: 5, label: t.report.step5 },
-            { step: 6, label: t.report.step6 },
-          ].map((item) => (
-            <div key={item.step} className="space-y-1">
-              <div
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  currentStep >= item.step ? 'bg-civic-600' : 'bg-slate-200'
-                }`}
-              />
-              <span
-                className={`hidden sm:block text-[11px] font-semibold truncate ${
-                  currentStep === item.step ? 'text-civic-700' : 'text-slate-400'
-                }`}
-              >
-                {item.label}
-              </span>
-            </div>
-          ))}
+        {/* 6-Step Visual Progress Bar */}
+        <div className="space-y-2 pt-2">
+          <div className="flex justify-between text-xs font-bold text-slate-600">
+            <span className={currentStep === 1 ? 'text-civic-700' : ''}>
+              1. {t.report.step1}
+            </span>
+            <span className={currentStep === 2 ? 'text-civic-700' : ''}>
+              2. {t.report.step2}
+            </span>
+            <span className={currentStep === 3 ? 'text-civic-700' : ''}>
+              3. {t.report.step3}
+            </span>
+            <span className={currentStep === 4 ? 'text-civic-700' : ''}>
+              4. {t.report.step4}
+            </span>
+            <span className={currentStep === 5 ? 'text-civic-700' : ''}>
+              5. {t.report.step5}
+            </span>
+            <span className={currentStep === 6 ? 'text-civic-700' : ''}>
+              6. {t.report.step6}
+            </span>
+          </div>
+          <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden flex">
+            <div
+              className="bg-civic-600 h-full transition-all duration-300 rounded-full"
+              style={{ width: `${(currentStep / 6) * 100}%` }}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Error Alert Box */}
+      {/* Global Error Banner */}
       {errorMessage && (
-        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm flex items-start space-x-2">
-          <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-          <span>{errorMessage}</span>
+        <div className="p-4 bg-rose-50 border-l-4 border-rose-600 rounded-xl flex items-center justify-between text-xs text-rose-800 shadow-sm animate-in fade-in">
+          <div className="flex items-center space-x-2">
+            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+            <span className="font-semibold">{errorMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorMessage(null)}
+            className="text-rose-500 hover:text-rose-700"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
-      {/* STEP 1: Select Problem Category */}
+      {/* STEP 1: Select Category */}
       {currentStep === 1 && (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6">
           <div>
@@ -600,7 +639,7 @@ function ReportProblemContent() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {categories.map((cat) => {
               const isSelected = selectedCategoryId === cat.id;
               return (
@@ -612,27 +651,28 @@ function ReportProblemContent() {
                     setSelectedCategoryCode(cat.code);
                     setSelectedSubcategoryId('');
                   }}
-                  className={`p-4 rounded-xl border text-left transition flex flex-col justify-between ${
+                  className={`p-4 rounded-xl border-2 text-left transition flex flex-col justify-between space-y-3 relative group ${
                     isSelected
-                      ? 'border-civic-600 bg-civic-50 ring-2 ring-civic-500 shadow-sm'
+                      ? 'border-civic-600 bg-sky-50 shadow-md ring-2 ring-civic-200'
                       : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  <div
-                    className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${
-                      isSelected ? 'bg-civic-600 text-white' : 'bg-slate-100 text-slate-700'
-                    }`}
-                  >
+                  <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-civic-700 group-hover:scale-105 transition">
                     <CategoryIcon name={cat.icon} className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-xs sm:text-sm text-slate-900 leading-snug">
+                    <h3 className="text-xs font-bold text-slate-900 leading-tight">
                       {language === 'mr' ? cat.nameMarathi : cat.name}
                     </h3>
-                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">
-                      SLA: ~{cat.defaultSlaHours} hrs
-                    </p>
+                    <span className="text-[10px] text-slate-500 mt-1 block">
+                      SLA: ~{cat.defaultSlaHours || 48}h
+                    </span>
                   </div>
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 text-civic-600">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -665,7 +705,7 @@ function ReportProblemContent() {
         </div>
       )}
 
-      {/* STEP 2: Upload Photo */}
+      {/* STEP 2: Live Device Camera Evidence */}
       {currentStep === 2 && (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6">
           <div>
@@ -677,69 +717,60 @@ function ReportProblemContent() {
             </p>
           </div>
 
-          {/* Image Previews */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {photos.map((photoUrl, index) => (
-              <div
-                key={index}
-                className="relative h-36 rounded-xl overflow-hidden border border-slate-200 shadow-sm group"
-              >
-                <img
-                  src={photoUrl}
-                  alt={`Complaint upload ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => removePhoto(index)}
-                  className="absolute top-2 right-2 p-1.5 rounded-full bg-slate-900/80 hover:bg-rose-600 text-white transition shadow"
-                  title="Remove image"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-                <div className="absolute bottom-1 left-2 text-[10px] font-bold text-white bg-slate-950/60 px-1.5 py-0.5 rounded">
-                  Photo {index + 1}
-                </div>
-              </div>
-            ))}
+          {/* Real Live Camera Viewfinder & Photo Management Component */}
+          <LiveCameraCapture
+            photos={photos}
+            onPhotosChange={(newPhotos) => {
+              setPhotos(newPhotos);
+              if (newPhotos.length > 0) {
+                setPhotoCapturedAt(newPhotos[newPhotos.length - 1].capturedAt);
+              }
+            }}
+            maxPhotos={3}
+            language={language as 'en' | 'mr'}
+          />
 
-            {photos.length < 3 && (
-              <label className="h-36 border-2 border-dashed border-slate-300 hover:border-civic-500 rounded-xl flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-slate-50 transition text-center space-y-2">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  multiple
-                  onChange={handlePhotoUpload}
-                  className="hidden"
-                />
-                <div className="w-10 h-10 rounded-full bg-sky-50 text-civic-600 flex items-center justify-center">
-                  <Upload className="w-5 h-5" />
-                </div>
-                <div className="text-xs font-bold text-slate-800">
-                  {photos.length === 0 ? 'Click to Upload / Capture' : 'Add Another Photo'}
-                </div>
-                <span className="text-[10px] text-slate-400">
-                  ({photos.length}/3 photos added)
-                </span>
-              </label>
-            )}
-          </div>
-
-          {isCompressing && (
-            <div className="flex items-center space-x-2 text-xs text-civic-700">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Optimizing image for quick upload...</span>
-            </div>
-          )}
-
-          <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-500">
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-500 leading-relaxed">
             {t.report.photoRequirements}
           </div>
         </div>
       )}
 
-      {/* STEP 3: Describe Problem */}
+      {/* STEP 3: Real-Time Geolocation on Nashik Map */}
       {currentStep === 3 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6">
+          <div>
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900">
+              {t.report.locationTitle}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500">
+              {t.report.locationSubtitle}
+            </p>
+          </div>
+
+          <LocationPickerMap
+            latitude={latitude}
+            longitude={longitude}
+            accuracy={accuracy}
+            locationSource={locationSource}
+            address={address}
+            zoneName={zoneName}
+            language={language as 'en' | 'mr'}
+            onLocationChange={(newLat, newLng, newAddr, newZ, newAcc, newSource) => {
+              setLatitude(newLat);
+              setLongitude(newLng);
+              setAddress(newAddr);
+              setZoneName(newZ);
+              setAccuracy(newAcc);
+              setLocationSource(newSource);
+              setLocationCapturedAt(new Date().toISOString());
+            }}
+          />
+        </div>
+      )}
+
+      {/* STEP 4: Describe Problem */}
+      {currentStep === 4 && (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6">
           <div>
             <h2 className="text-lg sm:text-xl font-bold text-slate-900">
@@ -805,18 +836,18 @@ function ReportProblemContent() {
                 <select
                   value={urgency}
                   onChange={(e) => setUrgency(e.target.value as any)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-civic-500 focus:outline-none bg-white font-semibold"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-civic-500 focus:outline-none bg-white font-medium"
                 >
                   <option value="LOW">Low (Routine maintenance)</option>
-                  <option value="MEDIUM">Medium (Normal civic priority)</option>
-                  <option value="HIGH">High (Immediate attention needed)</option>
-                  <option value="CRITICAL">Critical (Life / safety emergency)</option>
+                  <option value="MEDIUM">Medium (Normal resolution pace)</option>
+                  <option value="HIGH">High (Substantial obstruction/nuisance)</option>
+                  <option value="CRITICAL">Critical (Immediate safety hazard)</option>
                 </select>
               </div>
             </div>
 
-            {/* Checkbox toggles */}
-            <div className="space-y-3 pt-3 border-t border-slate-100">
+            {/* Checkbox Toggles */}
+            <div className="space-y-2 pt-2 border-t border-slate-100">
               <label className="flex items-start space-x-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -845,33 +876,6 @@ function ReportProblemContent() {
         </div>
       )}
 
-      {/* STEP 4: Geolocation on Nashik Map */}
-      {currentStep === 4 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6">
-          <div>
-            <h2 className="text-lg sm:text-xl font-bold text-slate-900">
-              {t.report.locationTitle}
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500">
-              {t.report.locationSubtitle}
-            </p>
-          </div>
-
-          <LocationPickerMap
-            latitude={latitude}
-            longitude={longitude}
-            address={address}
-            zoneName={zoneName}
-            onLocationChange={(newLat, newLng, newAddr, newZ) => {
-              setLatitude(newLat);
-              setLongitude(newLng);
-              setAddress(newAddr);
-              setZoneName(newZ);
-            }}
-          />
-        </div>
-      )}
-
       {/* STEP 5: Citizen Contact Details & Duplicate Notice */}
       {currentStep === 5 && (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6">
@@ -884,7 +888,7 @@ function ReportProblemContent() {
             </p>
           </div>
 
-          {/* Possible Duplicate Alert Banner (Section 22) */}
+          {/* Possible Duplicate Alert Banner */}
           {duplicateWarning && !duplicateAcknowledged && (
             <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-xl space-y-3">
               <div className="flex items-start space-x-2 text-amber-900">
@@ -898,7 +902,11 @@ function ReportProblemContent() {
                     <strong className="text-amber-950 font-bold">
                       {duplicateWarning.distanceMeters} {t.report.metersAway}
                     </strong>{' '}
-                    (Existing ID: <span className="font-mono font-bold">{duplicateWarning.referenceId}</span> - &quot;{duplicateWarning.title}&quot;).
+                    (Existing ID:{' '}
+                    <span className="font-mono font-bold">
+                      {duplicateWarning.referenceId}
+                    </span>{' '}
+                    - &quot;{duplicateWarning.title}&quot;).
                   </p>
                 </div>
               </div>
@@ -924,7 +932,7 @@ function ReportProblemContent() {
             </div>
           )}
 
-          {/* Logged in auto-populate shortcut (Section 14) */}
+          {/* Logged in auto-populate shortcut */}
           {user && (
             <label className="flex items-center space-x-2 text-xs font-bold text-civic-800 bg-sky-50 p-3 rounded-xl border border-sky-200 cursor-pointer shadow-sm">
               <input
@@ -953,7 +961,7 @@ function ReportProblemContent() {
                 type="text"
                 value={citizenName}
                 onChange={(e) => setCitizenName(e.target.value)}
-                placeholder="e.g., Ramesh Patil"
+                placeholder="e.g., Rohit Patil"
                 className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-civic-500 focus:outline-none"
               />
             </div>
@@ -962,14 +970,21 @@ function ReportProblemContent() {
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                 {t.report.mobileLabel} *
               </label>
-              <input
-                type="tel"
-                maxLength={10}
-                value={citizenMobile}
-                onChange={(e) => setCitizenMobile(e.target.value.replace(/\D/g, ''))}
-                placeholder="e.g., 9876543210"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm font-mono focus:ring-2 focus:ring-civic-500 focus:outline-none"
-              />
+              <div className="flex">
+                <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-slate-300 bg-slate-50 text-slate-500 text-sm font-semibold">
+                  +91
+                </span>
+                <input
+                  type="tel"
+                  maxLength={10}
+                  value={citizenMobile}
+                  onChange={(e) =>
+                    setCitizenMobile(e.target.value.replace(/\D/g, ''))
+                  }
+                  placeholder="98XXXXXXXX"
+                  className="w-full px-3.5 py-2.5 rounded-r-lg border border-slate-300 text-sm focus:ring-2 focus:ring-civic-500 focus:outline-none"
+                />
+              </div>
             </div>
 
             <div>
@@ -980,7 +995,7 @@ function ReportProblemContent() {
                 type="email"
                 value={citizenEmail}
                 onChange={(e) => setCitizenEmail(e.target.value)}
-                placeholder="e.g., ramesh@example.com"
+                placeholder="rohit@example.com"
                 className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-civic-500 focus:outline-none"
               />
             </div>
@@ -1000,7 +1015,7 @@ function ReportProblemContent() {
             </div>
           </div>
 
-          {/* Privacy Guarantee Reassurance Banner (Section 11 & 27) */}
+          {/* Privacy Guarantee Banner */}
           <div className="p-4 bg-sky-50 rounded-xl border border-sky-200 flex items-start space-x-3 text-xs text-sky-900 leading-relaxed">
             <Shield className="w-5 h-5 text-sky-700 shrink-0 mt-0.5" />
             <span>{t.report.privacyNotice}</span>
@@ -1008,7 +1023,7 @@ function ReportProblemContent() {
         </div>
       )}
 
-      {/* STEP 6: Review & Confirmation */}
+      {/* STEP 6: Review & Final Confirmation */}
       {currentStep === 6 && (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6">
           <div>
@@ -1052,7 +1067,13 @@ function ReportProblemContent() {
 
             <div className="flex justify-between py-2">
               <span className="font-bold text-slate-500">Confirmed Location:</span>
-              <span className="text-right text-slate-800 max-w-xs">{address}</span>
+              <div className="text-right max-w-xs">
+                <span className="block text-slate-900 font-semibold">{address}</span>
+                <span className="text-[11px] font-mono text-slate-500 block">
+                  {latitude.toFixed(5)}, {longitude.toFixed(5)} ({locationSource}
+                  {accuracy ? ` ±${Math.round(accuracy)}m` : ''})
+                </span>
+              </div>
             </div>
 
             <div className="flex justify-between py-2">
@@ -1064,15 +1085,21 @@ function ReportProblemContent() {
 
             {photos.length > 0 && (
               <div className="py-3 space-y-2">
-                <span className="font-bold text-slate-500 block">Uploaded Evidence ({photos.length}):</span>
-                <div className="flex gap-2">
+                <span className="font-bold text-slate-500 block">
+                  Captured Evidence ({photos.length} photo{photos.length > 1 ? 's' : ''}):
+                </span>
+                <div className="flex gap-2 overflow-x-auto py-1">
                   {photos.map((p, idx) => (
-                    <img
-                      key={idx}
-                      src={p}
-                      alt="Review thumb"
-                      className="w-16 h-16 rounded-lg object-cover border border-slate-200"
-                    />
+                    <div key={idx} className="relative shrink-0">
+                      <img
+                        src={p.dataUrl}
+                        alt="Review thumb"
+                        className="w-20 h-20 rounded-xl object-cover border border-slate-300 shadow-sm"
+                      />
+                      <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded text-[8px] font-bold bg-slate-950/80 text-white">
+                        {p.source === 'CAMERA' ? '📷 Cam' : '📁 File'}
+                      </span>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -1087,7 +1114,8 @@ function ReportProblemContent() {
           <button
             type="button"
             onClick={handleBack}
-            className="px-5 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 text-sm font-semibold flex items-center space-x-1.5 transition"
+            disabled={isSubmitting}
+            className="px-5 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 text-sm font-semibold flex items-center space-x-1.5 transition disabled:opacity-50"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>{t.common.back}</span>
@@ -1100,32 +1128,22 @@ function ReportProblemContent() {
           <button
             type="button"
             onClick={handleNext}
-            disabled={isCheckingDuplicate}
-            className="px-7 py-3 rounded-xl bg-civic-700 hover:bg-civic-800 text-white text-sm font-bold shadow-md hover:shadow-lg flex items-center space-x-2 transition"
+            className="px-6 py-3 rounded-xl bg-civic-700 hover:bg-civic-800 text-white text-sm font-bold shadow-md flex items-center space-x-2 transition"
           >
-            {isCheckingDuplicate ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Checking...</span>
-              </>
-            ) : (
-              <>
-                <span>{t.common.next}</span>
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
+            <span>{t.common.next}</span>
+            <ArrowRight className="w-4 h-4" />
           </button>
         ) : (
           <button
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="px-8 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-base font-bold shadow-lg hover:shadow-xl flex items-center space-x-2 transition transform hover:-translate-y-0.5"
+            className="px-8 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white text-sm font-black shadow-lg flex items-center space-x-2 transition transform active:scale-95"
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>{t.report.submitting}</span>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Submitting Complaint...</span>
               </>
             ) : (
               <>
@@ -1142,7 +1160,14 @@ function ReportProblemContent() {
 
 export default function ReportProblemPage() {
   return (
-    <Suspense fallback={<div className="max-w-4xl mx-auto px-4 py-20 text-center text-slate-500 text-sm">Loading reporting wizard...</div>}>
+    <Suspense
+      fallback={
+        <div className="max-w-4xl mx-auto px-4 py-20 text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-civic-700" />
+          <p className="mt-2 text-xs text-slate-500">Loading Report Form...</p>
+        </div>
+      }
+    >
       <ReportProblemContent />
     </Suspense>
   );
