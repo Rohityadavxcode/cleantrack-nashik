@@ -5,6 +5,12 @@ const nextConfig = {
     domains: ['images.unsplash.com'],
     unoptimized: true,
   },
+  experimental: {
+    outputFileTracingIncludes: {
+      '/**': ['./prisma/dev.db'],
+    },
+  },
 };
 
 module.exports = nextConfig;
+
